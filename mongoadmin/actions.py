@@ -2,10 +2,15 @@
 Built-in, globally-available admin actions.
 """
 
+import django
 from django import template
 from django.core.exceptions import PermissionDenied
 from django.contrib.admin import helpers
-from django.contrib.admin.util import get_deleted_objects, model_ngettext
+from distutils.version import StrictVersion
+if StrictVersion(django.get_version()) < StrictVersion('1.9'):
+    from django.contrib.admin.util import get_deleted_objects, model_ngettext
+else:
+    from django.contrib.admin.utils import get_deleted_objects, model_ngettext
 from django.db import router
 from django.shortcuts import render_to_response
 try:
@@ -62,7 +67,7 @@ def _delete_selected(modeladmin, request, queryset):
                 # processed.
                 obj.delete()
             # This is what you get if you have to monkey patch every object in a changelist
-            # No queryset object, I can tell ya. So we get a new one and delete that. 
+            # No queryset object, I can tell ya. So we get a new one and delete that.
             #pk_list = [o.pk for o in queryset]
             #klass = queryset[0].__class__
             #qs = klass.objects.filter(pk__in=pk_list)
@@ -95,7 +100,7 @@ def _delete_selected(modeladmin, request, queryset):
         "app_label": app_label,
         'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
     }
-    
+
     # Display the confirmation page
     return render_to_response(modeladmin.delete_selected_confirmation_template or [
         "admin/%s/%s/delete_selected_confirmation.html" % (app_label, opts.object_name.lower()),

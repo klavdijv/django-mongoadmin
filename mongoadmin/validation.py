@@ -1,7 +1,12 @@
+import django
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
-from django.contrib.admin.util import get_fields_from_path, NotRelationField
+from distutils.version import StrictVersion
+if StrictVersion(django.get_version()) < StrictVersion('1.9'):
+    from django.contrib.admin.util import get_fields_from_path, NotRelationField
+else:
+    from django.contrib.admin.utils import get_fields_from_path, NotRelationField
 from django.contrib.admin.validation import (check_type, check_isseq, check_isdict,
                                              get_field, BaseValidator)
 
@@ -327,7 +332,7 @@ def is_relation(field):
         return True
     return False
 
-    
+
 def is_multi_relation(field):
     if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
         return True

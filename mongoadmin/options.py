@@ -1,15 +1,19 @@
 import collections
 from functools import partial
 
+import django
 from django import forms
 from django.forms.models import modelform_defines_fields
 from django.contrib.admin.options import ModelAdmin, InlineModelAdmin, get_ul_class
 from django.contrib.admin import widgets
-from django.contrib.admin.util import flatten_fieldsets
+from distutils.version import StrictVersion
+if StrictVersion(django.get_version()) < StrictVersion('1.9'):
+    from django.contrib.admin.util import flatten_fieldsets, NestedObjects
+else:
+    from django.contrib.admin.utils import flatten_fieldsets, NestedObjects
 from django.core.exceptions import FieldError, ValidationError
 from django.forms.formsets import DELETION_FIELD_NAME
 from django.utils.translation import ugettext as _
-from django.contrib.admin.util import NestedObjects
 from django.utils.text import get_text_list
 
 from mongoengine.fields import (DateTimeField, URLField, IntField, ListField, EmbeddedDocumentField,
