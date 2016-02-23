@@ -126,4 +126,3 @@ class DocumentChangeList(ChangeList):
         self.can_show_all = can_show_all
         self.multi_page = multi_page
         self.paginator = paginator
-
