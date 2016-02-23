@@ -1,7 +1,10 @@
 import collections
+import operator
 from functools import partial
 
 import django
+from bson import ObjectId
+from bson.errors import InvalidId
 from django import forms
 from django.forms.models import modelform_defines_fields
 from django.contrib.admin.options import ModelAdmin, InlineModelAdmin, get_ul_class
@@ -18,6 +21,7 @@ from django.utils.text import get_text_list
 
 from mongoengine.fields import (DateTimeField, URLField, IntField, ListField, EmbeddedDocumentField,
                                 ReferenceField, StringField, FileField, ImageField)
+from mongoengine.queryset.visitor import Q
 
 from mongodbforms.documents import documentform_factory, embeddedformset_factory, DocumentForm, EmbeddedDocumentFormSet, EmbeddedDocumentForm
 from mongodbforms.util import load_field_generator, init_document_options
@@ -350,6 +354,58 @@ class DocumentAdmin(MongoFormFieldMixin, ModelAdmin):
 
         super(DocumentAdmin, self).log_deletion(
             request=request, object=object, object_repr=object_repr)
+
+    def get_search_results(self, request, queryset, search_term):
+        """Perform actual search by fields specified in modeladmin.search_fields.
+
+        If query is a valid ObjectId, then search only in 'id' field,
+        to make is super fast.
+        Otherwise, remove 'id' from search fields, because it raises an exception.
+
+        Args:
+            request: current django request.
+            queryset: queryset to search in.
+            search_term: query to search for.
+
+        Returns:
+            tuple (queryset, use_distinct).
+            queryset: queryset to implement the search.
+            use_distinct: a boolean indicating if the results may contain duplicates.
+                Currently it's always False.
+        """
+        # Apply keyword searches.
+        def construct_search(field_name):
+            if field_name.startswith('^'):
+                return "%s__istartswith" % field_name[1:]
+            elif field_name.startswith('='):
+                return "%s__iexact" % field_name[1:]
+            elif field_name.startswith('@'):
+                return "%s__search" % field_name[1:]
+            else:
+                return "%s__icontains" % field_name
+
+        use_distinct = False
+        search_fields = self.get_search_fields(request)
+
+        if search_fields and search_term:
+            if 'id' in search_fields:
+                try:
+                    ObjectId(unicode(search_term))
+                except InvalidId:
+                    # remove id field from search fields, if a query can't be an id
+                    search_fields = tuple([field for field in search_fields if field != 'id'])
+                else:
+                    # otherwise, if a query has an id format, remove all other fields,
+                    # to make search super fast
+                    search_fields = ('id',)
+
+            orm_lookups = [construct_search(str(search_field))
+                           for search_field in search_fields]
+            for bit in search_term.split():
+                or_queries = [Q(**{orm_lookup: bit})
+                              for orm_lookup in orm_lookups]
+                queryset = queryset.filter(reduce(operator.or_, or_queries))
+        return queryset, use_distinct
 
 
 class EmbeddedInlineAdmin(MongoFormFieldMixin, InlineModelAdmin):
