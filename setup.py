@@ -21,6 +21,7 @@ setup(name='mongoadmin',
         'mongoadmin.templatetags', 
         'mongoadmin.contenttypes', 
         'mongoadmin.auth',
+        'mongoadmin.management',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
