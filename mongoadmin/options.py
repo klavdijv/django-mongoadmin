@@ -1,6 +1,6 @@
 import collections
 import operator
-from functools import partial
+from functools import partial, reduce
 
 import django
 from bson import ObjectId
